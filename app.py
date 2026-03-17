@@ -5293,6 +5293,7 @@ def render_month_report_png(
     font_body = load_ttf_font(ImageFont, size=int(18 * scale), bold=False)
     font_small = load_ttf_font(ImageFont, size=int(15 * scale), bold=False)
     font_tiny = load_ttf_font(ImageFont, size=int(13 * scale), bold=False)
+    font_bar_value = load_ttf_font(ImageFont, size=int(16 * scale), bold=True)
 
     margin = int(44 * scale)
     gap = int(20 * scale)
@@ -5591,7 +5592,7 @@ def render_month_report_png(
 
     chart_pad = int(24 * scale)
     chart_x0 = right_x + chart_pad
-    chart_y0 = section_y + int(62 * scale)
+    chart_y0 = section_y + int(72 * scale)
     chart_w = right_w - chart_pad * 2
     sub_table_h = min(int(150 * scale), int(top_h * 0.34))
     chart_h = top_h - sub_table_h - int(92 * scale)
@@ -5603,7 +5604,7 @@ def render_month_report_png(
     color_cashless = (59, 130, 246)
     draw_pill(
         draw,
-        (chart_x0 + int(8 * scale), chart_y0 - int(34 * scale)),
+        (chart_x0 + int(8 * scale), section_y + int(44 * scale)),
         "Наличные",
         font_tiny,
         fill=color_accent_soft,
@@ -5612,7 +5613,7 @@ def render_month_report_png(
     )
     draw_pill(
         draw,
-        (chart_x0 + int(138 * scale), chart_y0 - int(34 * scale)),
+        (chart_x0 + int(138 * scale), section_y + int(44 * scale)),
         "Безналичные",
         font_tiny,
         fill=(219, 234, 254),
@@ -5683,24 +5684,19 @@ def render_month_report_png(
 
             cash_label = f"Н: {fmt_money(item['cash'])}"
             cashless_label = f"Б: {fmt_money(item['cashless'])}"
-            cash_w, cash_h_txt = text_bbox(draw, cash_label, font_tiny)
-            cashless_w, cashless_h_txt = text_bbox(draw, cashless_label, font_tiny)
+            cash_w, cash_h_txt = text_bbox(draw, cash_label, font_bar_value)
+            cashless_w, cashless_h_txt = text_bbox(draw, cashless_label, font_bar_value)
             labels_gap = int(2 * scale)
             labels_total_h = cash_h_txt + labels_gap + cashless_h_txt
             labels_y0 = max(chart_y0 + int(4 * scale), base_y - bar_h_total - labels_total_h - int(6 * scale))
 
-            draw.text((bar_x + (bar_w - cash_w) / 2, labels_y0), cash_label, font=font_tiny, fill=bar_cash_color)
+            draw.text((bar_x + (bar_w - cash_w) / 2, labels_y0), cash_label, font=font_bar_value, fill=bar_cash_color)
             draw.text(
                 (bar_x + (bar_w - cashless_w) / 2, labels_y0 + cash_h_txt + labels_gap),
                 cashless_label,
-                font=font_tiny,
+                font=font_bar_value,
                 fill=bar_cashless_color,
             )
-
-            split_label = f"Н:{fmt_money(item['cash'])} Б:{fmt_money(item['cashless'])}"
-            split_w, split_h = text_bbox(draw, split_label, font_tiny)
-            split_y = min(base_y + int(24 * scale), chart_y0 + chart_h - split_h - int(6 * scale))
-            draw.text((bar_x + (bar_w - split_w) / 2, split_y), split_label, font=font_tiny, fill=color_muted)
 
             label = item["date"].strftime("%d.%m")
             lw, lh = text_bbox(draw, label, font_small)
