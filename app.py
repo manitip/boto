@@ -5697,6 +5697,11 @@ def render_month_report_png(
                 fill=bar_cashless_color,
             )
 
+            split_label = f"Н:{fmt_money(item['cash'])} Б:{fmt_money(item['cashless'])}"
+            split_w, split_h = text_bbox(draw, split_label, font_tiny)
+            split_y = min(base_y + int(24 * scale), chart_y0 + chart_h - split_h - int(6 * scale))
+            draw.text((bar_x + (bar_w - split_w) / 2, split_y), split_label, font=font_tiny, fill=color_muted)
+
             label = item["date"].strftime("%d.%m")
             lw, lh = text_bbox(draw, label, font_small)
             draw.text((bar_x + (bar_w - lw) / 2, base_y + int(6 * scale)), label, font=font_small, fill=color_muted2)
