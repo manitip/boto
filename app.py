@@ -5289,10 +5289,11 @@ def render_month_report_png(
     font_title = load_ttf_font(ImageFont, size=int(44 * scale), bold=True)
     font_kpi_value = load_ttf_font(ImageFont, size=int(34 * scale), bold=True)
     font_kpi_label = load_ttf_font(ImageFont, size=int(16 * scale), bold=False)
-    font_section = load_ttf_font(ImageFont, size=int(20 * scale), bold=True)
-    font_body = load_ttf_font(ImageFont, size=int(16 * scale), bold=False)
-    font_small = load_ttf_font(ImageFont, size=int(13 * scale), bold=False)
-    font_bar_value = load_ttf_font(ImageFont, size=int(15 * scale), bold=True)
+    font_section = load_ttf_font(ImageFont, size=int(22 * scale), bold=True)
+    font_body = load_ttf_font(ImageFont, size=int(18 * scale), bold=False)
+    font_small = load_ttf_font(ImageFont, size=int(15 * scale), bold=False)
+    font_tiny = load_ttf_font(ImageFont, size=int(13 * scale), bold=False)
+    font_bar_value = load_ttf_font(ImageFont, size=int(17 * scale), bold=True)
 
     margin = int(44 * scale)
     gap = int(20 * scale)
@@ -5591,17 +5592,40 @@ def render_month_report_png(
 
     chart_pad = int(24 * scale)
     chart_x0 = right_x + chart_pad
-    chart_y0 = section_y + int(56 * scale)
+    chart_y0 = section_y + int(62 * scale)
     chart_w = right_w - chart_pad * 2
     sub_table_h = min(int(150 * scale), int(top_h * 0.34))
     chart_h = top_h - sub_table_h - int(92 * scale)
 
     base_y = chart_y0 + chart_h - int(18 * scale)
-    plot_h = chart_h - int(44 * scale)
+    plot_h = chart_h - int(64 * scale)
+
+    color_cash = color_accent
+    color_cashless = (59, 130, 246)
+    draw_pill(
+        draw,
+        (chart_x0 + int(8 * scale), chart_y0 - int(34 * scale)),
+        "Наличные",
+        font_tiny,
+        fill=color_accent_soft,
+        text_color=color_cash,
+        radius=int(10 * scale),
+    )
+    draw_pill(
+        draw,
+        (chart_x0 + int(138 * scale), chart_y0 - int(34 * scale)),
+        "Безналичные",
+        font_tiny,
+        fill=(219, 234, 254),
+        text_color=color_cashless,
+        radius=int(10 * scale),
+    )
 
     service_items = []
     for s in services:
         total = float(s["total"] or 0.0)
+        cash = float(s["cash"] or 0.0)
+        cashless = float(s["cashless"] or 0.0)
         try:
             service_date = dt.date.fromisoformat(str(s["service_date"]))
         except Exception:
@@ -5611,6 +5635,8 @@ def render_month_report_png(
             {
                 "date": service_date,
                 "total": total,
+                "cash": cash,
+                "cashless": cashless,
                 "status": str(s["mnsps_status"] or ""),
                 "weekly_min_needed": weekly_min_for_service,
                 "is_collected": weekly_min_for_service <= 0 or total >= weekly_min_for_service,
@@ -5635,21 +5661,36 @@ def render_month_report_png(
 
         for idx, item in enumerate(service_items):
             bar_x = chart_x0 + bar_gap + idx * (bar_w + bar_gap)
-            bar_h = int((item["total"] / max_total) * plot_h)
+            bar_h_total = int((item["total"] / max_total) * plot_h)
+            cash_h = int((item["cash"] / max_total) * plot_h) if item["total"] > 0 else 0
+            cashless_h = max(0, bar_h_total - cash_h)
 
             status_ok = bool(item.get("is_collected"))
-            bar_color = color_accent if status_ok else color_danger
+            bar_cash_color = color_cash if status_ok else color_danger
+            bar_cashless_color = color_cashless if status_ok else (248, 113, 113)
 
-            draw.rounded_rectangle(
-                (bar_x, base_y - bar_h, bar_x + bar_w, base_y),
-                radius=bar_r,
-                fill=bar_color,
-            )
+            if cash_h > 0:
+                draw.rounded_rectangle(
+                    (bar_x, base_y - cash_h, bar_x + bar_w, base_y),
+                    radius=bar_r,
+                    fill=bar_cash_color,
+                )
+            if cashless_h > 0:
+                draw.rounded_rectangle(
+                    (bar_x, base_y - bar_h_total, bar_x + bar_w, base_y - cash_h),
+                    radius=bar_r,
+                    fill=bar_cashless_color,
+                )
 
             value_label = fmt_money(item["total"])
             val_w, val_h = text_bbox(draw, value_label, font_bar_value)
-            val_y = max(chart_y0 + int(6 * scale), base_y - bar_h - val_h - int(4 * scale))
+            val_y = max(chart_y0 + int(6 * scale), base_y - bar_h_total - val_h - int(4 * scale))
             draw.text((bar_x + (bar_w - val_w) / 2, val_y), value_label, font=font_bar_value, fill=color_text)
+
+            split_label = f"Н:{fmt_money(item['cash'])} Б:{fmt_money(item['cashless'])}"
+            split_w, split_h = text_bbox(draw, split_label, font_tiny)
+            split_y = min(base_y + int(24 * scale), chart_y0 + chart_h - split_h - int(6 * scale))
+            draw.text((bar_x + (bar_w - split_w) / 2, split_y), split_label, font=font_tiny, fill=color_muted)
 
             label = item["date"].strftime("%d.%m")
             lw, lh = text_bbox(draw, label, font_small)
